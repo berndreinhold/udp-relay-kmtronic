@@ -5,13 +5,14 @@
 #include <string>
 #include <cstring>
 #include <sstream>
+#include <algorithm>
 
 
 void printUsage(const char* programName) {
 	std::cout << "Usage: " << programName << " --config <config_file>\n";
 	std::cout << "  e.g. " << programName << " --config config.txt\n";
-	std::cout << "       " << programName << " --url:port <value1> --command <value2>\n";
-	std::cout << "  e.g. " << programName << " --url:port 192.168.0.0 --command FF0000\n";
+	std::cout << "       " << programName << " --url:port <url>:<port> --command <cmd>\n";
+	std::cout << "  e.g. " << programName << " --url:port 192.168.0.0:54321 --command FF0000\n";
 	std::cout << std::endl;
 }
 
@@ -55,12 +56,11 @@ int split_url_port(std::string input, std::string& url, int& port, char delimite
 
 	return -1;
 }
-
-
 int main(int argc, char* argv[]) {
 	std::string url_port, command_;
 	std::string configFile="";
 
+	char buffer[10];
 	if (argc == 5) {
 		// Check for --url:port and --command
 		for (int i = 1; i < argc; i += 2) {
@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
 			}
 			else {
 				printUsage(argv[0]);
-				return 1;
+				return -1;
 			}
 		}
 	} else if (argc == 3) {
@@ -80,16 +80,16 @@ int main(int argc, char* argv[]) {
 		if (strcmp(argv[1], "--config") == 0 || strcmp(argv[1], "-c") == 0) {
 			configFile = argv[2];
 			if (!readConfigFile(configFile, url_port, command_)) {
-				return 1;
+				return -1;
 			}
 		}
 		else {
 			printUsage(argv[0]);
-			return 1;
+			return -1;
 		}
 	} else {
 		printUsage(argv[0]);
-		return 1;
+		return -1;
 	}
 
 	// now url_port and command_ are filled
@@ -101,27 +101,37 @@ int main(int argc, char* argv[]) {
 	int port = 42;
 	split_url_port(url_port, url, port);
 
+	//switch to upper:
+	std::transform(command_.begin(), command_.end(), command_.begin(),
+		[](unsigned char c) { return std::toupper(c); });
+
 	std::cout << "'url:port': " << url << ":" << port << std::endl;
 	std::cout << "command: " << command_ << std::endl;
 
-	
 
 	const int msg_length = 6;
 	udp_comm::Comm communicator(url, port);
 
-	char msg[msg_length] = { 'A', 'A', '0', '1', '0', '1' };
-	//char msg[msg_length] = validate_command(command_);
-	communicator.udp_send(msg);
-	for (int i = 0; i < msg_length; ++i) {
-		std::cout << msg[i];
-	}
-	std::cout << " (" << sizeof(msg) << " bytes) sent to " << url << ":" << port << std::endl;
+	if (!(command_ == "FF0000")) {
+		// if you just want the status, you get it below already.
 
-	char msg_get_status[msg_length] = { 'A', 'A', '0', '0', '0', '0' };
+		//validate_command
+		char msg[msg_length] = { 'F', 'F', '0', '3', '0', '1' };
+		//char msg[msg_length] = validate_command(command_);
+		communicator.udp_send(msg);
+		for (int i = 0; i < msg_length; ++i) {
+			std::cout << msg[i];
+		}
+		std::cout << " (" << sizeof(msg) << " bytes) sent to " << url << ":" << port << std::endl;
+	}
+
+
+	char msg_get_status[msg_length] = { 'F', 'F', '0', '0', '0', '0' };
 	communicator.udp_send(msg_get_status);
 	//char status_msg[1024];
 	//int ret = sender.udp_receive(&status_msg);
-	int ret = communicator.udp_receive();
-	std::cout << "Return value: " << ret << std::endl;
-	return ret;
+	char *ret = communicator.udp_receive();
+	int ret_value = communicator.post_process_udp_receive_ret_value(ret);
+
+	return ret_value;
 }

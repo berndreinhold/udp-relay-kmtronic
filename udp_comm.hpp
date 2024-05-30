@@ -1,6 +1,5 @@
-
-#ifndef UDP_COM
-#define UDP_COM
+#ifndef UDP_COMM
+#define UDP_COMM
 
 #include <stdio.h>
 #include <ws2tcpip.h>
@@ -113,7 +112,7 @@ namespace udp_comm
 		}
 
 
-		int udp_receive() {
+		char *udp_receive() {
 			fd_set readfds;
 			struct timeval tv;
 
@@ -131,10 +130,13 @@ namespace udp_comm
 				printf("select failed with error: %d\n", WSAGetLastError());
 				closesocket(sock_);
 				WSACleanup();
-				return 1;
+				sprintf(buffer, "%d", result);
+				return buffer;
 			}
 			else if (result == 0) {
 				printf("Timeout occurred! No data received.\n");
+				sprintf(buffer, "%d", result);
+				return buffer;
 			}
 			else {
 				if (FD_ISSET(sock_, &readfds)) {
@@ -147,10 +149,27 @@ namespace udp_comm
 					else {
 						//n is at most 8
 						buffer[n] = '\0'; // Null-terminate the received data 
-						printf("Received message from device: %s\n", buffer);
+						//printf("Received message from device: %s\n", buffer);
 					}
+					return buffer;
 				}
 			}
+		}
+
+		int post_process_udp_receive_ret_value(char *ret) {
+			//post-process return value from udp_receive():
+			//ret is a bit number in reverse order - reorder now 
+			std::string strRet(ret);
+			std::string strRet_reverse(ret);
+			int n = strRet.length();
+			for (int i = 0;i < n;++i) {
+				strRet_reverse[n - i - 1] = strRet[i];
+			}
+			int ret_value = strtol(strRet_reverse.c_str(), NULL, 2); //interpret as binary number
+
+			//std::cout << strRet_reverse << "," << strlen(ret) << ", 0x" << std::hex << ret_value << std::endl;
+			return ret_value;
+
 		}
 	};
 };
