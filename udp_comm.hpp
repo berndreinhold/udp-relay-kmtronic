@@ -145,6 +145,7 @@ namespace udp_comm
 						printf("recvfrom failed with error: %d\n", WSAGetLastError());
 					}
 					else {
+						//n is at most 8
 						buffer[n] = '\0'; // Null-terminate the received data 
 						printf("Received message from device: %s\n", buffer);
 					}
