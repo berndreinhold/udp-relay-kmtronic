@@ -83,9 +83,9 @@ Comm::~Comm()
 		}
 
 
-void Comm::udp_send(const char* msg) const
-		{
-	int n = sendto(sock_, msg, sizeof(msg), 0, (SOCKADDR*)&addr_, sizeof(addr_));
+void Comm::udp_send(const std::string msg) const
+{
+	int n = sendto(sock_, (char*)msg.data(), sizeof(msg.data()), 0, (SOCKADDR*)&addr_, sizeof(addr_));
 	if (n == SOCKET_ERROR)
 	{
 		std::cerr << "[Error] UDP send Error. " << WSAGetLastError() << std::endl;

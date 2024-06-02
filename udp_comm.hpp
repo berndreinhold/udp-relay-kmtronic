@@ -38,7 +38,7 @@ namespace udp_comm
 		*/
 		Comm(const std::string& destination_address, const int destination_port, const int source_port);
 		~Comm();
-		void udp_send(const char* msg) const;
+		void udp_send(const std::string msg) const;
 		char* udp_receive();
 		int post_process_udp_receive_ret_value(char* ret); 
 	};

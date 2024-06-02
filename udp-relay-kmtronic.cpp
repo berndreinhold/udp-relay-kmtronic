@@ -7,6 +7,7 @@
 #include <cstring>
 #include <sstream>
 #include <algorithm>
+#include <cassert>
 
 void printUsage(const char* programName) {
 	std::cout << "Usage: " << programName << " --config <config_file>\n";
@@ -16,8 +17,8 @@ void printUsage(const char* programName) {
 	std::cout << std::endl;
 }
 
-bool readConfigFile(const std::string& configFile, std::string& url_port, std::string& command_) {
-	// fill url_port and command_ from configFile
+bool readConfigFile(const std::string& configFile, std::string& url_port, std::string& command) {
+	// fill url_port and command from configFile
 	std::ifstream file(configFile);
 	if (!file.is_open()) {
 		std::cerr << "Could not open config file: " << configFile << "\n";
@@ -29,7 +30,7 @@ bool readConfigFile(const std::string& configFile, std::string& url_port, std::s
 		return false;
 	}
 
-	if (!std::getline(file, command_)) {
+	if (!std::getline(file, command)) {
 		std::cerr << "Could not read 'command' from config file." << configFile << "\n";
 		return false;
 	}
@@ -56,9 +57,10 @@ int split_url_port(std::string input, std::string& url, int& port, char delimite
 
 	return -1;
 }
-int main(int argc, char* argv[]) {
-	std::string url_port, command_;
-	std::string configFile="";
+
+int arg_parse(int argc, char* argv[], std::string& url, int& port, std::string& command) {
+	std::string url_port = "";
+	std::string configFile = "";
 
 	char buffer[10] = "";
 	if (argc == 5) {
@@ -68,18 +70,19 @@ int main(int argc, char* argv[]) {
 				url_port = argv[i + 1];
 			}
 			else if (strcmp(argv[i], "--command") == 0) {
-				command_ = argv[i + 1];
+				command = argv[i + 1];
 			}
 			else {
 				printUsage(argv[0]);
 				return -1;
 			}
 		}
-	} else if (argc == 3) {
+	}
+	else if (argc == 3) {
 		// Check for --config
 		if (strcmp(argv[1], "--config") == 0 || strcmp(argv[1], "-c") == 0) {
 			configFile = argv[2];
-			if (!readConfigFile(configFile, url_port, command_)) {
+			if (!readConfigFile(configFile, url_port, command)) {
 				return -1;
 			}
 		}
@@ -87,54 +90,66 @@ int main(int argc, char* argv[]) {
 			printUsage(argv[0]);
 			return -1;
 		}
-	} else {
+	}
+	else {
 		printUsage(argv[0]);
 		return -1;
 	}
 
-	// now url_port and command_ are filled
+	command = trim_command(command); // length is either 4 or 6 after trim_command()
+	//switch to upper:
+	std::transform(command.begin(), command.end(), command.begin(),
+		[](unsigned char c) { return std::toupper(c); });
+
+	// now url_port and command are filled
 	if (configFile != "") {
 		std::cout << "config file: " << configFile << std::endl;
 	}
-	
-	std::string url = "xxx.xxx.xxx.xxx";
-	int port = 42;
+
 	split_url_port(url_port, url, port);
 
-	//switch to upper:
-	std::transform(command_.begin(), command_.end(), command_.begin(),
-		[](unsigned char c) { return std::toupper(c); });
+	return 0;
+}
 
+
+
+
+int main(int argc, char* argv[]) {
+	std::string url;
+	int port;
+	std::string command;
+	if (arg_parse(argc, argv, url, port, command) < 0) {
+		return -1;
+	}
+
+	//command is now guaranteed to have length 6
 	std::cout << "'url:port': " << url << ":" << port << std::endl;
-	std::cout << "command: " << command_ << std::endl;
+	std::cout << "command (length: " << command.length() << "): " << command << std::endl;
 
-
-	const int msg_length = 6;
+	
 	udp_comm::Comm communicator(url, port);
 
-	if (!(command_ == "FF0000")) {
+	if (!(command == "FF0000")) {
 		// if you just want the status, you get it below already.
-		char* msg = new char[msg_length];
-		msg = validate_command(command_);
+		std::string msg = validate_command(command);
 		if (msg=="") {
-			std::cerr << "'" << command_ << "' has not the right format!" << std::endl;
+			std::cerr << "'" << command << "' has not the right format!" << std::endl;
 			std::cerr << "see https://info.kmtronic.com/lan-ethernet-ip-8-channels-udp-relay-board.html" << std::endl;
 			std::cerr << "for details (accessed June 2024)." << std::endl;
 			return -1;
 		}
-		//char msg[msg_length] = { 'F', 'F', '0', '0', '0', '0' };
+		
 		communicator.udp_send(msg);
-		for (int i = 0; i < msg_length; ++i) {
+		for (int i = 0; i < msg.length(); ++i) {
 			std::cout << msg[i];
 		}
-		std::cout << " (" << sizeof(msg) << " bytes) sent to " << url << ":" << port << std::endl;
+		std::cout << " (" << (msg.length()) << " bytes) sent to " << url << ":" << port << std::endl;
 	}
 
 
-	char msg_get_status[msg_length] = { 'F', 'F', '0', '0', '0', '0' };
+	// get status
+	std::string msg_get_status = "FF0000";
 	communicator.udp_send(msg_get_status);
-	//char status_msg[1024];
-	//int ret = sender.udp_receive(&status_msg);
 	char *ret = communicator.udp_receive();
 	int ret_value = communicator.post_process_udp_receive_ret_value(ret);
 
