@@ -15,7 +15,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
 
 
-add_executable(udp_mini udp_mini.cpp udp_comm.cpp udp_comm_validation.cpp)
+add_executable(udp_mini udp_mini.cpp "udp_comm.hpp" "udp_comm_validation.hpp")
 
 
 target_compile_options(udp_mini PUBLIC -O3 -Wall)
