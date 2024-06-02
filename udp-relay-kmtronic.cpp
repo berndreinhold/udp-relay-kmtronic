@@ -12,8 +12,8 @@
 void printUsage(const char* programName) {
 	std::cout << "Usage: " << programName << " --config <config_file>\n";
 	std::cout << "  e.g. " << programName << " --config config.txt\n";
-	std::cout << "       " << programName << " --url:port <url>:<port> --command <cmd>\n";
-	std::cout << "  e.g. " << programName << " --url:port 192.168.0.0:54321 --command FF0000\n";
+	std::cout << "       " << programName << " --url_port <url>:<port> --command <cmd>\n";
+	std::cout << "  e.g. " << programName << " --url_port 192.168.0.0:54321 --command FF0000\n";
 	std::cout << std::endl;
 }
 
@@ -152,7 +152,7 @@ int main(int argc, char* argv[]) {
 	communicator.udp_send(msg_get_status);
 	std::string ret = communicator.udp_receive();
 	int ret_value = communicator.post_process_udp_receive_ret_value(ret.c_str());
-	std::cout << "ret_value (UDP relay): " << ret_value << std::endl;
+	std::cout << "ret_value (UDP relay): 0x" << std::hex << ret_value << std::endl;
 
 	return ret_value;
 }
