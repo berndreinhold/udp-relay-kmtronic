@@ -150,8 +150,9 @@ int main(int argc, char* argv[]) {
 	// get status
 	std::string msg_get_status = "FF0000";
 	communicator.udp_send(msg_get_status);
-	char *ret = communicator.udp_receive();
-	int ret_value = communicator.post_process_udp_receive_ret_value(ret);
+	std::string ret = communicator.udp_receive();
+	int ret_value = communicator.post_process_udp_receive_ret_value(ret.c_str());
+	std::cout << "ret_value (UDP relay): " << ret_value << std::endl;
 
 	return ret_value;
 }

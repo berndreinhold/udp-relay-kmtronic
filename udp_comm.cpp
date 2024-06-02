@@ -1,5 +1,6 @@
 #include "udp_comm.hpp"
 #include <iostream>
+#include <string>
 
 using namespace udp_comm;
 
@@ -94,8 +95,9 @@ void Comm::udp_send(const std::string msg) const
 	}
 }
 
-
-char* Comm::udp_receive() {
+std::string Comm::udp_receive() {
+	// from: https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-recvfrom
+	// TODO: might be interesting as well
 			fd_set readfds;
 			struct timeval tv;
 
@@ -107,19 +109,23 @@ char* Comm::udp_receive() {
 			tv.tv_sec = 5;  // 5 second timeout 
 			tv.tv_usec = 0;
 
-			char buffer[1024];
+			const size_t buffer_size = 1024;
+			char buffer[buffer_size];
+			
 			int result = select(sock_ + 1, &readfds, NULL, NULL, &tv);
 			if (result == SOCKET_ERROR) {
 				printf("select failed with error: %d\n", WSAGetLastError());
 				closesocket(sock_);
 				WSACleanup();
 				sprintf(buffer, "%d", result);
-				return buffer;
+				std::string outBuffer(buffer);
+				return outBuffer;
 			}
 			else if (result == 0) {
 				printf("Timeout occurred! No data received.\n");
 				sprintf(buffer, "%d", result);
-				return buffer;
+				std::string outBuffer(buffer);
+				return outBuffer;
 			}
 			else {
 				if (FD_ISSET(sock_, &readfds)) {
@@ -131,26 +137,30 @@ char* Comm::udp_receive() {
 					}
 					else {
 						//n is at most 8
-						buffer[n] = '\0'; // Null-terminate the received data 
+						int index_ = min(n, buffer_size - 1);
+						buffer[index_] = '\0'; // Null-terminate the received data 
 						//printf("Received message from device: %s\n", buffer);
 					}
-					return buffer;
+					std::string outBuffer(buffer);
+					return outBuffer;
+				}
+				else {
+					printf("No data received.\n");
+					return "";
 				}
 			}
 		}
 
-int Comm::post_process_udp_receive_ret_value(char* ret) {
-			//post-process return value from udp_receive():
-			//ret is a bit number encoding relay states in reverse order - reorder now 
-			std::string strRet(ret);
-			std::string strRet_reverse(ret);
-			size_t n = strRet.length();
-			for (unsigned i = 0;i < n;++i) {
-				strRet_reverse[n - i - 1] = strRet[i];
-			}
-			int ret_value = strtol(strRet_reverse.c_str(), NULL, 2); //interpret as binary number
+int Comm::post_process_udp_receive_ret_value(std::string ret) {
+	//post-process return value from udp_receive():
+	//ret is a bit number encoding relay states in reverse order - reorder now 
+	std::string strRet(ret);
+	std::string strRet_reverse(ret);
+	size_t n = strRet.length();
+	for (unsigned i = 0;i < n;++i) {
+		strRet_reverse[n - i - 1] = strRet[i];
+	}
+	int ret_value = strtol(strRet_reverse.c_str(), NULL, 2); //interpret as binary number
 
-			//std::cout << strRet_reverse << "," << strlen(ret) << ", 0x" << std::hex << ret_value << std::endl;
-			return ret_value;
-
-		}
+	return ret_value;
+}
