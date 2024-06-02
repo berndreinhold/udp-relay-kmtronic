@@ -165,13 +165,14 @@ bool _validate_last_4_bits(const std::string& buffer) {
 		if (!(buffer[1] == '0')) {
 			return false;
 		}
-		std::regex rgx_digit23("[0F]");
+		std::regex rgx_digit2("[0F]");
 		std::string strBuffer2(1, buffer[2]);
-		if (!std::regex_search(strBuffer2, rgx_digit23)) {
+		if (!std::regex_search(strBuffer2, rgx_digit2)) {
 			return false;
 		}
+		std::regex rgx_digit3("[01F]");
 		std::string strBuffer3(1, buffer[3]);
-		if (!std::regex_search(strBuffer3, rgx_digit23)) {
+		if (!std::regex_search(strBuffer3, rgx_digit3)) {
 			return false;
 		}
 		return true;
