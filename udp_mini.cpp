@@ -1,12 +1,12 @@
 #include <iostream>
 #include "udp_comm.hpp"
+#include "udp_comm_validation.hpp"
 #include "string"
 #include <fstream>
 #include <string>
 #include <cstring>
 #include <sstream>
 #include <algorithm>
-
 
 void printUsage(const char* programName) {
 	std::cout << "Usage: " << programName << " --config <config_file>\n";
@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
 	std::string url_port, command_;
 	std::string configFile="";
 
-	char buffer[10];
+	char buffer[10] = "";
 	if (argc == 5) {
 		// Check for --url:port and --command
 		for (int i = 1; i < argc; i += 2) {
@@ -114,10 +114,15 @@ int main(int argc, char* argv[]) {
 
 	if (!(command_ == "FF0000")) {
 		// if you just want the status, you get it below already.
-
-		//validate_command
-		char msg[msg_length] = { 'F', 'F', '0', '3', '0', '1' };
-		//char msg[msg_length] = validate_command(command_);
+		char* msg = new char[msg_length];
+		msg = validate_command(command_);
+		if (msg=="") {
+			std::cerr << "'" << command_ << "' has not the right format!" << std::endl;
+			std::cerr << "see https://info.kmtronic.com/lan-ethernet-ip-8-channels-udp-relay-board.html" << std::endl;
+			std::cerr << "for details (accessed June 2024)." << std::endl;
+			return -1;
+		}
+		//char msg[msg_length] = { 'F', 'F', '0', '0', '0', '0' };
 		communicator.udp_send(msg);
 		for (int i = 0; i < msg_length; ++i) {
 			std::cout << msg[i];
