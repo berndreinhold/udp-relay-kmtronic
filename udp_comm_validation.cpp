@@ -174,7 +174,7 @@ bool _validate_last_4_bits(const std::string& buffer) {
 		if (!std::regex_search(strBuffer3, rgx_digit23)) {
 			return false;
 		}
-		return false;
+		return true;
 	}
 	else return false;
 
