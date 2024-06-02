@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(udp_mini LANGUAGES CXX)
+project(udp-relay-kmtronic LANGUAGES CXX)
 
 # set the C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -14,16 +14,23 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
 
-
-add_executable(udp_mini udp_mini.cpp "udp_comm.hpp" "udp_comm_validation.hpp")
-
-
-target_compile_options(udp_mini PUBLIC -O3 -Wall)
-target_include_directories(
-    udp_mini
-    PUBLIC
+set(SOURCES
+    udp-relay-kmtronic.cpp
+    udp_comm.cpp
+    udp_comm_validation.cpp
 )
 
+set(TEST_SOURCES
+     "test_udp_comm_validation.cpp"
+     udp_comm_validation.cpp
+)
 
+add_executable(udp-relay-kmtronic ${SOURCES})
+add_executable(test-udp-relay-kmtronic ${TEST_SOURCES})
 
-
+target_compile_options(udp-relay-kmtronic PUBLIC -Wall)
+target_compile_options(test-udp-relay-kmtronic PUBLIC -Wall)
+target_include_directories(
+    udp-relay-kmtronic
+    PUBLIC
+)

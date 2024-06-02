@@ -2,75 +2,77 @@
 #include <algorithm>
 #include <regex>
 #include "udp_comm_validation.hpp"
+#include <cassert>
 
-char* validate_command(const std::string& command_) {
+std::string trim_command(std::string& command) {
+	// check that the command is 4, 6 or 8 characters long
+	// if 8, check that the first two are '0x' or '0X'
+	size_t len = command.length();
+	assert((len == 8) || (len == 6) || (len == 4));
+
+	if (len == 8) {
+		// check first 2
+		if ((command[0] == '0') && ((command[1] == 'x') || (command[1] == 'X'))) {
+			return command.substr(2, 6);
+		}
+		else {
+			std::cerr << "unexpected command begin (expected '0x'): " << command[0] << command[1] << std::endl;
+			return "";
+		}
+	}
+	else return command;
+}
+
+
+std::string validate_command(const std::string& command) {
 	// https://info.kmtronic.com/lan-ethernet-ip-8-channels-udp-relay-board.html
-	// command_ is assumed to be already in upper case, 
+	// command is assumed to be already in upper case, 
+	// and the first two characters are 'FF' or 'ff'
+	// the command length is 8, 6 or 4 char.
+	// if it is 8, the first two are stripped, leaving a 6 or 4 char long command
 	// change for different command lengths and 
 	// depending on that make sure that values provided are agreeing to expected values.
 	// the return value is six char long.
 
-	char* arrCommand = new char[6];
-	arrCommand[0] = 'F';
-	arrCommand[1] = 'F';
-	//rest is filled below after _validate_4()
+	std::string out_command = "FF0000";
+	size_t len = command.length();
+	assert((len == 4) || (len == 6));
 
-	size_t len = command_.length();
-
-	if (len == 8) {
-
-		// check first 2
-		if (!(command_[0] == '0') || !(command_[1] == 'x')) {
-			std::cerr << "unexpected command begin (expected '0x'): " << command_[0] << command_[1] << std::endl;
-			return "";
-		}
-
-		//check next 2 for 'FF'
-		std::string buffer2 = "00";
-		buffer2[0] = command_[2];
-		buffer2[1] = command_[3];
-
-		if (!_validate_FF(buffer2)) {
-			return "";
-		}
-
-		std::string buffer = "0000";
-		// check for last 4
-		for (unsigned i = 4;i < len;i++) {
-			buffer[i - 4] = command_[i];
-		}
-		if (!_validate_4(buffer)) return "";
-	}
-
-	
 	if (len == 6) {
 		// check the first two
 		std::string buffer2 = "00";
-		buffer2[0] = command_[0];
-		buffer2[1] = command_[1];
+		buffer2[0] = command[0];
+		buffer2[1] = command[1];
 
 		if (!_validate_FF(buffer2)) {
 			return "";
 		}
 		std::string buffer = "0000";
 		// check for last 4
-		
 		for (unsigned i = 2;i < len;i++) {
-			buffer[i - 2] = command_[i];
+			buffer[i - 2] = command[i];
 		}
-		if (!_validate_4(buffer)) return "";
+		if (_validate_last_4_bits(buffer)) {
+			for (unsigned i = 0;i < 4;++i) {
+				out_command[2 + i] = buffer[i];
+			}
+			return out_command;
+		}
+		else {
+			return "";
+		}
 	}
 	else if (len == 4) {
 		std::string buffer = "0000";
 		// check for last 4
 		for (unsigned i = 0;i < len;i++) {
-			buffer[i] = command_[i];
+			buffer[i] = command[i];
 		}
-		if (_validate_4(buffer)) {
+		if (_validate_last_4_bits(buffer)) {
 			for (unsigned i = 0;i < 4;++i) {
-				arrCommand[2 + i] = buffer[i];
+				out_command[2 + i] = buffer[i];
 			}
-			return arrCommand;
+			return out_command;
 		}
 		else {
 			return "";
@@ -78,10 +80,10 @@ char* validate_command(const std::string& command_) {
 	}
 	else {
 		std::cerr << "unexpected command length: " << len;
-		std::cerr << "and command: " << command_ << std::endl;
+		std::cerr << " for command: " << command << std::endl;
 	}
 
-	return arrCommand;
+	return out_command;
 }
 
 bool _validate_FF(const std::string& buffer) {
@@ -94,7 +96,7 @@ bool _validate_FF(const std::string& buffer) {
 }
 
 
-bool _validate_4(const std::string& buffer) {
+bool _validate_last_4_bits(const std::string& buffer) {
 	//
 
 	/*
