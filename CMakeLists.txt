@@ -20,9 +20,16 @@ set(SOURCES
     udp_comm_validation.cpp
 )
 
-add_executable(udp-relay-kmtronic ${SOURCES})
+set(TEST_SOURCES
+     "test_udp_comm_validation.cpp"
+     udp_comm_validation.cpp
+)
 
-target_compile_options(udp-relay-kmtronic PUBLIC -O3 -Wall)
+add_executable(udp-relay-kmtronic ${SOURCES})
+add_executable(test-udp-relay-kmtronic ${TEST_SOURCES})
+
+target_compile_options(udp-relay-kmtronic PUBLIC -Wall)
+target_compile_options(test-udp-relay-kmtronic PUBLIC -Wall)
 target_include_directories(
     udp-relay-kmtronic
     PUBLIC
